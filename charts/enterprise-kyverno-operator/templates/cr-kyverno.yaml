@@ -1,0 +1,32 @@
+{{- if .Values.kyverno.createCR }}
+apiVersion: security.nirmata.io/v1alpha1
+kind: Kyverno
+metadata:
+  annotations:
+  labels:
+    {{- include "enterprise-kyverno.labels" . | nindent 4 }}
+  name: kyverno
+  namespace: {{ template "enterprise-kyverno.namespace" . }}
+spec:
+  secrets:
+  
+  namespace: {{ include "kyverno.namespace" . }}
+  repository: {{ .Values.kyverno.image.repository }}
+  version: {{ .Values.kyverno.image.tag }}
+  replicas: {{ include "enterprise-kyverno.kyvernoReplicas" . }}
+
+  helm:
+    values:
+      {{- toYaml .Values.kyverno.helm | nindent 6 }}
+      cleanupController:
+        image:
+          tag: {{ .Values.kyverno.image.tag }}
+      initImage:
+        tag: {{ .Values.kyverno.image.tag }}
+      {{- if and (eq .Values.kyverno.enablePolicyExceptions true) (contains "v1.9" .Values.kyverno.image.tag) }}
+      extraArgs:
+      - --enablePolicyException=true
+      - --loggingFormat=text
+      - --exceptionNamespace={{ include "kyverno.namespace" . }}
+      {{- end }}
+{{- end }}
